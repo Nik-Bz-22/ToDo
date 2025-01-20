@@ -9,16 +9,16 @@ namespace ToDo
 
     class Program
     {
-        private Dictionary<byte, KeyValuePair<string, Action>> MenuOptions { get; }
-        private Program()
-        {
-            MenuOptions = new Dictionary<byte, KeyValuePair<string, Action>>();
-
-            MenuOptions[1] = new KeyValuePair<string, Action>("Show all tasks", () => Menu.DisplayAllTasks());
-            MenuOptions[2] = new KeyValuePair<string, Action>("Add new task", () => Menu.AddTask());
-            MenuOptions[3] = new KeyValuePair<string, Action>("Mark task as complete", () => Menu.MarkAsComplete());
-            MenuOptions[4] = new KeyValuePair<string, Action>("Delete task", () => Menu.DeleteTask());
-        }
+        // private Dictionary<byte, KeyValuePair<string, Action>> MenuOptions { get; }
+        // private Program()
+        // {
+        //     MenuOptions = new Dictionary<byte, KeyValuePair<string, Action>>();
+        //
+        //     MenuOptions[1] = new KeyValuePair<string, Action>("Show all tasks", () => Menu.DisplayAllTasks());
+        //     MenuOptions[2] = new KeyValuePair<string, Action>("Add new task", () => Menu.AddTask());
+        //     MenuOptions[3] = new KeyValuePair<string, Action>("Mark task as complete", () => Menu.MarkAsComplete());
+        //     MenuOptions[4] = new KeyValuePair<string, Action>("Delete task", () => Menu.DeleteTask());
+        // }
 
 
 
@@ -27,14 +27,14 @@ namespace ToDo
             while (true)
             {
                 
-                foreach (var option in MenuOptions)
+                for (int i = 1; i <= Menu.Options.Count; i++)
                 {
-                    Console.WriteLine($"{option.Key}) {option.Value.Key}");
+                    Console.WriteLine($"{i}) {Menu.Options[i-1].Key}");
                 }
 
                 var userInput = Console.ReadLine();
                 var selectedOption = byte.TryParse(userInput, out var choice);
-                if (!selectedOption || (choice < 1 || choice > MenuOptions.Count))
+                if (!selectedOption || (choice < 1 || choice > Menu.Options.Count))
                 {
                     if (userInput == "exit")
                     {
@@ -45,14 +45,12 @@ namespace ToDo
                     continue;
                 }
                 
-                MenuOptions[choice].Value();
+                Menu.Options[choice-1].Value();
                 Console.WriteLine();
             }
         }
         
         
-        
-
         public static void Main()
         {
             var program = new Program();

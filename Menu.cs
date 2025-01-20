@@ -3,6 +3,19 @@ namespace ToDo
 
     static class Menu
     {
+        public static List<KeyValuePair<string, Action>> Options { get; }
+
+        static Menu()
+        {
+            Options = new List<KeyValuePair<string, Action>>
+            {
+                new KeyValuePair<string, Action>("Show all tasks", () => Menu.DisplayAllTasks()),
+                new KeyValuePair<string, Action>("Add new task", () => Menu.AddTask()),
+                new KeyValuePair<string, Action>("Mark task as complete", () => Menu.MarkAsComplete()),
+                new KeyValuePair<string, Action>("Delete task", () => Menu.DeleteTask())
+            };
+        }
+
         public static List<Task> GetAllTasks()
         {
             using (var db = new AppDbContext())
