@@ -1,171 +1,179 @@
 using System.Globalization;
+using System.Text.Json;
+namespace ToDo;
 
-namespace ToDo
+static class Menu
 {
+    public static List<KeyValuePair<string, Action>> Options { get; }
 
-    static class Menu
+    static Menu()
     {
-        public static List<KeyValuePair<string, Action>> Options { get; }
-
-        static Menu()
+        Options = new List<KeyValuePair<string, Action>>
         {
-            Options = new List<KeyValuePair<string, Action>>
+            new KeyValuePair<string, Action>("Show all tasks", () => Menu.DisplayAllTasks()),
+            new KeyValuePair<string, Action>("Add new task", () => Menu.AddTask()),
+            new KeyValuePair<string, Action>("Mark task as complete", () => Menu.MarkAsComplete()),
+            new KeyValuePair<string, Action>("Delete task", () => Menu.DeleteTask()),
+            new KeyValuePair<string, Action>("Show active tasks", () => Menu.DisplayActiveTasks()),
+            new KeyValuePair<string, Action>("Fill DB from json file", () => Menu.FillDb()),
+        };
+    }
+
+    private static List<Task> GetAllTasks()
+    {
+        using (var db = new AppDbContext())
+        {
+            var tasks = db.Task.ToList();
+            return tasks;
+        }
+    }
+
+    public static void AddTask()
+    {
+        string title = null;
+        string description = null;
+        DateTime deadline;
+        byte priority;
+
+        while (string.IsNullOrWhiteSpace(title))
+        {
+            Console.WriteLine("Please enter the name of the task you would like to add:");
+            title = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(title))
             {
-                new KeyValuePair<string, Action>("Show all tasks", () => Menu.DisplayAllTasks()),
-                new KeyValuePair<string, Action>("Add new task", () => Menu.AddTask()),
-                new KeyValuePair<string, Action>("Mark task as complete", () => Menu.MarkAsComplete()),
-                new KeyValuePair<string, Action>("Delete task", () => Menu.DeleteTask()),
-                new KeyValuePair<string, Action>("Show active tasks", () => Menu.DisplayActiveTasks()),
-                
-            };
+                Console.WriteLine("Task name cannot be empty. Please try again.");
+            }
         }
 
-        private static List<Task> GetAllTasks()
+        while (string.IsNullOrWhiteSpace(description))
         {
-            using (var db = new AppDbContext())
+            Console.WriteLine("Please enter the description of the task you would like to add:");
+            description = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(description))
             {
-                var tasks = db.Task.ToList();
-                return tasks;
+                Console.WriteLine("Task description cannot be empty. Please try again.");
             }
         }
 
-        public static void AddTask()
+        while (true)
         {
-            string title = null;
-            string description = null;
-            DateTime deadline;
-            byte priority;
-
-            while (string.IsNullOrWhiteSpace(title))
+            Console.WriteLine("Please enter the due date of the task you would like to add (dd/MM/yyyy HH:mm:ss):");
+            string input = Console.ReadLine();
+            if (DateTime.TryParseExact(input, "dd/MM/yyyy HH:mm:ss", null, DateTimeStyles.None, out deadline))
             {
-                Console.WriteLine("Please enter the name of the task you would like to add:");
-                title = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(title))
-                {
-                    Console.WriteLine("Task name cannot be empty. Please try again.");
-                }
+                break;
             }
+            Console.WriteLine("Invalid date format. Please use dd/MM/yyyy HH:mm:ss.");
+        }
 
-            while (string.IsNullOrWhiteSpace(description))
+        while (true)
+        {
+            Console.WriteLine("Please enter the priority of the task you would like to add (0-255):");
+            string input = Console.ReadLine();
+            if (byte.TryParse(input, out priority))
             {
-                Console.WriteLine("Please enter the description of the task you would like to add:");
-                description = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(description))
-                {
-                    Console.WriteLine("Task description cannot be empty. Please try again.");
-                }
+                break;
             }
+            Console.WriteLine("Invalid priority. Please enter a number between 0 and 255.");
+        }
 
-            while (true)
-            {
-                Console.WriteLine("Please enter the due date of the task you would like to add (dd/MM/yyyy HH:mm:ss):");
-                string input = Console.ReadLine();
-                if (DateTime.TryParseExact(input, "dd/MM/yyyy HH:mm:ss", null, DateTimeStyles.None, out deadline))
-                {
-                    break;
-                }
-                Console.WriteLine("Invalid date format. Please use dd/MM/yyyy HH:mm:ss.");
-            }
+        using (var db = new AppDbContext())
+        {
+            db.Task.Add(new Task(title, description, false, deadline, priority));
+            db.SaveChanges();
+        }
 
-            while (true)
-            {
-                Console.WriteLine("Please enter the priority of the task you would like to add (0-255):");
-                string input = Console.ReadLine();
-                if (byte.TryParse(input, out priority))
-                {
-                    break;
-                }
-                Console.WriteLine("Invalid priority. Please enter a number between 0 and 255.");
-            }
+        Console.WriteLine("New task added and saved to the database.");
+    }
 
-            using (var db = new AppDbContext())
+
+    public static void DisplayAllTasks()
+    {
+        var tasks = GetAllTasks();
+        Console.WriteLine($"Tasks found: {tasks.Count}");
+        foreach (var task in tasks)
+        {
+            Console.WriteLine(task);
+        }
+    }
+
+    public static void MarkAsComplete()
+    {
+        Console.WriteLine("Select the task you would like to mark as completed(ID):");
+        var selectedTaskID = int.Parse(Console.ReadLine().Trim());
+        using (var db = new AppDbContext())
+        {
+            try
             {
-                db.Task.Add(new Task(title, description, false, deadline, priority));
+                var task = db.Task.Find(selectedTaskID);
+                task.IsCompleted = true;
                 db.SaveChanges();
             }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+    }
 
-            Console.WriteLine("New task added and saved to the database.");
+    public static void DeleteTask()
+    {
+        Console.WriteLine("Select the task you would like to delete(ID):");
+        var selectedTaskID = int.Parse(Console.ReadLine().Trim());
+        using (var db = new AppDbContext())
+        {
+            try
+            {
+                var task = db.Task.Find(selectedTaskID);
+                db.Task.Remove(task);
+                db.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+    }
+
+    public static void DisplayActiveTasks()
+    {
+        var inProgressTasks = new List<Task>();
+
+        using (var db = new AppDbContext())
+        {
+            try
+            {
+                inProgressTasks = db.Task.Where(t => t.Status == Config.TaskStatus.IN_PROGRESS).ToList();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                inProgressTasks = new List<Task>(); 
+            }
         }
 
-
-        public static void DisplayAllTasks()
+        if (inProgressTasks.Count > 0)
         {
-            var tasks = GetAllTasks();
-            Console.WriteLine($"Tasks found: {tasks.Count}");
-            foreach (var task in tasks)
-            {
+            foreach (var task in inProgressTasks)
                 Console.WriteLine(task);
-            }
         }
-
-        public static void MarkAsComplete()
+        else
         {
-            Console.WriteLine("Select the task you would like to mark as completed(ID):");
-            var selectedTaskID = int.Parse(Console.ReadLine().Trim());
-            using (var db = new AppDbContext())
-            {
-                try
-                {
-                    var task = db.Task.Find(selectedTaskID);
-                    task.IsCompleted = true;
-                    db.SaveChanges();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
+            Console.WriteLine("No active tasks found");
         }
+    }
 
-        public static void DeleteTask()
+    public static void FillDb()
+    {
+        using (var db = new AppDbContext())
         {
-            Console.WriteLine("Select the task you would like to delete(ID):");
-            var selectedTaskID = int.Parse(Console.ReadLine().Trim());
-            using (var db = new AppDbContext())
-            {
-                try
-                {
-                    var task = db.Task.Find(selectedTaskID);
-                    db.Task.Remove(task);
-                    db.SaveChanges();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-            }
+            // i need to read data from tasks.json and fill DB
+            string jsonString = File.ReadAllText(Path.Combine(Config.ROOT_DIR, "tasks.json"));
+            var tasks = JsonSerializer.Deserialize<List<Task>>(jsonString);
+            db.Task.AddRange(tasks);
+            Console.WriteLine("Tasks added to database.");
+            db.SaveChanges();
+
         }
-
-        public static void DisplayActiveTasks()
-        {
-            var inProgressTasks = new List<Task>();
-
-            using (var db = new AppDbContext())
-            {
-                try
-                {
-                    inProgressTasks = db.Task.Where(t => t.Status == Config.TaskStatus.IN_PROGRESS).ToList();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    inProgressTasks = new List<Task>(); 
-                }
-            }
-
-            if (inProgressTasks.Count > 0)
-            {
-                foreach (var task in inProgressTasks)
-                {
-                    Console.WriteLine(task);
-                }
-            }
-            else
-            {
-                Console.WriteLine("No active tasks found");
-            }
-            
-        }
-
     }
 }
