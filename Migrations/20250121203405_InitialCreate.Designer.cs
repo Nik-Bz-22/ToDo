@@ -11,7 +11,7 @@ using ToDo;
 namespace ToDo.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250120125716_InitialCreate")]
+    [Migration("20250121203405_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace ToDo.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.1");
 
-            modelBuilder.Entity("ToDo.TaskModel", b =>
+            modelBuilder.Entity("ToDo.Task", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -38,6 +38,10 @@ namespace ToDo.Migrations
 
                     b.Property<byte>("Priority")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()

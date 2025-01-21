@@ -21,7 +21,8 @@ namespace ToDo.Migrations
                     Description = table.Column<string>(type: "TEXT", nullable: false),
                     IsCompleted = table.Column<bool>(type: "INTEGER", nullable: false),
                     Deadline = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Priority = table.Column<byte>(type: "INTEGER", nullable: false)
+                    Priority = table.Column<byte>(type: "INTEGER", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
